@@ -30,7 +30,7 @@
         const guid = event.target.value.trim();
         const bytes = toByteArray(guid);
 
-        if (!((bytes[7] & 0x0f) == 0 || (bytes[7] & 0x0f) == 0x0f)) {
+        if ((bytes[7] & 0x0f) !== 0 && (bytes[7] & 0x0f) !== 0x0f) {
           console.error(
             "This Correlation ID was not generated on the server, so no timestamp information is available."
           );
