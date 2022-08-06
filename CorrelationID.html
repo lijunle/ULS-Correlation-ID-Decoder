@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>ULS Correlation ID Decoder</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+      function toByteArray(guid) {
+        const chars = guid.replace(/[{}-]/g, "");
+        if (chars.length != 32) {
+          return null;
+        }
+
+        const shifts = chars.replace(
+          /(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)/,
+          "$4$3$2$1$6$5$8$7$9$10$11$12$13$14$15$16"
+        );
+
+        const byteArray = new Uint8Array(16);
+        for (let i = 0; i < 32; i += 2) {
+          const block = shifts.substr(i, 2);
+          const byte = parseInt(block, 16);
+          byteArray[i / 2] = byte;
+        }
+
+        return byteArray;
+      }
+
+      function handleChange(event) {
+        const guid = event.target.value.trim();
+        const bytes = toByteArray(guid);
+
+        if (!((bytes[7] & 0x0f) == 0 || (bytes[7] & 0x0f) == 0x0f)) {
+          console.error(
+            "This Correlation ID was not generated on the server, so no timestamp information is available."
+          );
+          return;
+        }
+
+        const epochOffset = 62135596800000n; // milliseconds from 0001-01-01 to 1970-01-01
+        const milliseconds =
+          0b11n * 2n ** 44n +
+          BigInt(bytes[0]) * 2n ** 36n +
+          BigInt(bytes[1]) * 2n ** 28n +
+          BigInt(bytes[2]) * 2n ** 20n +
+          BigInt(bytes[3]) * 2n ** 12n +
+          BigInt(bytes[4]) * 2n ** 4n +
+          BigInt(bytes[5]) / 2n ** 4n -
+          epochOffset;
+
+        const timestamp = new Date(Number(milliseconds));
+
+        document.getElementById("localTime").textContent =
+          timestamp.toLocaleString();
+        document.getElementById("utcTime").textContent =
+          timestamp.toISOString();
+      }
+    </script>
+  </head>
+  <body>
+    <p>ULS Correlation ID Decoder</p>
+    <input
+      id="input"
+      label="Correlation ID"
+      onchange="handleChange(event)"
+      style="width: 100%"
+    />
+    <p>Local time: <span id="localTime"></span></p>
+    <p>UTC time: <span id="utcTime"></span></p>
+  </body>
+</html>
